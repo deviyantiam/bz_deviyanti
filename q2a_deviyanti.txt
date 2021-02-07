@@ -1,0 +1,3 @@
+select cast(concat(left(cast(month as string), 4),'-',right(cast(month as string), 2),'-' ,cast(date as string))as date) day,
+avg(TIMESTAMP_DIFF(end_time,start_time,second)) average_of_duration_in_sec 
+from `bonza-interview.analyst.telecom_data` group by day

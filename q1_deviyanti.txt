@@ -1,0 +1,3 @@
+with monthly as (SELECT month, count(distinct user_id) AS monthly_total_active_user
+  FROM `bonza-interview.analyst.telecom_data` group by month)
+select format_datetime('%B %y', datetime( cast(concat(LEFT(cast(month as string), 4),'-',right(cast(month as string), 2),'-01' )as date)))as period,* from monthly 

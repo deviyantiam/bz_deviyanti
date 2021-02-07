@@ -1,0 +1,21 @@
+with
+numberofbin as 
+  (select 
+    1+round(3.322*log(count(*),10)) bin from `bonza-interview.analyst.telecom_data` where month=201410 --Sturge’s Rule
+    ),
+sessiondur as
+    (select timestamp_diff(end_time,start_time,second) session_duration
+    from  `bonza-interview.analyst.telecom_data`where month=201410
+    ),
+range_ as 
+    (select round(duration_range/bin) width from
+    (select *from numberofbin cross join 
+    (select max(session_duration)- min(session_duration) duration_range from sessiondur)))
+
+select rfloor as sorting,concat(rfloor, '-', rceil) as session_duration,count(*) as count
+from (select floor(session_duration/width)*width rfloor, 
+floor(session_duration/width)*width+width rceil
+from(select * from sessiondur cross join range_ order by session_duration))hist
+group by session_duration, rfloor 
+order by rfloor
+

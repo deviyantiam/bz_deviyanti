@@ -1,0 +1,35 @@
+
+with 
+monthlist as
+    (select distinct(month) period,cast(concat(left(cast(month as string), 4),'-',right(cast(month as string), 2),'-' ,'01')as date) as startofmonth 
+    from `bonza-interview.analyst.telecom_data`),
+date_range as --start,end date for each month
+    (select *,date_sub(date_trunc(date_add(startofmonth, interval 1 month), month), interval 1 day) as endofmonth
+    from monthlist),
+totalactivebymonth as -- active users by month
+    (select cast(concat(left(cast(month as string), 4),'-',right(cast(month as string), 2),'-' ,'01')as date)as period, totalactive 
+    from (select month, count(distinct user_id) totalactive
+    from `bonza-interview.analyst.telecom_data` a 
+    left join date_range b on a.month=b.period where date(start_time)<=b.endofmonth  
+    group by month)),
+end_acc as --last active by id 
+   (select user_id, max(end_time) last_active
+   from `bonza-interview.analyst.telecom_data` group by user_id)
+    ,
+total_end_acc as --total last active user by month (churn next month)
+    (select *, date_add(date(month),interval 1 month) period from
+        (select date_trunc(date(last_active),MONTH) month, count(user_id) inactiveusers 
+    from end_acc group by date_trunc(date(last_active),MONTH))
+    ),
+churnhiatus as --some users return after a hiatus, if hiatus>30 days, theyre deemed as churn in their first month of hiatus
+    (select next_month as period, count(user_id) churn_hiatus from(select *, case when TimeDiff>30 then 1
+    else 0
+    end as iscancelled, date_trunc(date_add(date(start_time),interval 1 month),Month) next_month from (select user_id, start_time,
+    timestamp_diff(start_time,lag(start_time, 1) over (partition by user_id order by start_time),day) as TimeDiff
+    from `bonza-interview.analyst.telecom_data` order by user_id))a where iscancelled=1 group by next_month
+	),
+total_churn as
+    (select a.period,churn_hiatus+inactiveusers totalchurn from churnhiatus a inner join total_end_acc b on a.period=b.period),
+churnrate as
+    (select a.period,round(totalchurn/b.totalactive*100,2) churn_rate from total_churn a inner join totalactivebymonth b on b.period=a.period order by period)
+select format_datetime("%B %y", datetime(a.period)) as month, churn_rate, b.period as sorting from churnrate a inner join monthlist b on a.period=b.startofmonth 

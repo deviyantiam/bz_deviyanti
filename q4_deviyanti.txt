@@ -1,0 +1,33 @@
+-- Plot daily total active users
+select cast(concat(left(cast(month as string), 4),'-',right(cast(month as string), 2),'-' ,cast(date as string))as date) day, count(distinct user_id) AS daily_total_active_user
+FROM `bonza-interview.analyst.telecom_data` where month=201410 group by day 
+
+-- Plot based on location 11-13 Oct
+select cast(concat(left(cast(month as string), 4),'-',right(cast(month as string), 2),'-' ,cast(date as string))as date) day, concat(cast(latitude as decimal),',',cast(longitude as decimal)) coordinate,user_id-- count(distinct user_id) AS daily_total_active_user
+FROM `bonza-interview.analyst.telecom_data` where month=201410 and date=11
+select cast(concat(left(cast(month as string), 4),'-',right(cast(month as string), 2),'-' ,cast(date as string))as date) day, concat(cast(latitude as decimal),',',cast(longitude as decimal)) coordinate,user_id-- count(distinct user_id) AS daily_total_active_user
+FROM `bonza-interview.analyst.telecom_data` where month=201410 and date=12
+select cast(concat(left(cast(month as string), 4),'-',right(cast(month as string), 2),'-' ,cast(date as string))as date) day, concat(cast(latitude as decimal),',',cast(longitude as decimal)) coordinate,user_id-- count(distinct user_id) AS daily_total_active_user
+FROM `bonza-interview.analyst.telecom_data` where month=201410 and date=13
+
+-- Plot venn diagram date 12th
+with part as(
+ select month, date, user_id,
+ case when extract(time from start_time)>TIME(6, 00, 00) and extract(time from start_time)<=TIME(12, 00, 00)  then 'morning'
+ when extract(time from start_time)>TIME(12, 00, 00) and extract(time from start_time)<=TIME(18, 00, 00)  then 'afternoon'
+ when extract(time from start_time)>TIME(00, 00, 00) and extract(time from start_time)<=TIME(6, 00, 00)  then 'night'
+    else 'evening'
+    end as partsoftheday
+FROM `bonza-interview.analyst.telecom_data` where month=201410 and date=12)
+select partsoftheday,count(user_id) as count from part group by partsoftheday order by partsoftheday
+
+-- Plot venn diagram date 11th
+with part as(
+ select month, date, user_id,
+ case when extract(time from start_time)>TIME(6, 00, 00) and extract(time from start_time)<=TIME(12, 00, 00)  then 'morning'
+ when extract(time from start_time)>TIME(12, 00, 00) and extract(time from start_time)<=TIME(18, 00, 00)  then 'afternoon'
+ when extract(time from start_time)>TIME(00, 00, 00) and extract(time from start_time)<=TIME(6, 00, 00)  then 'night'
+    else 'evening'
+    end as partsoftheday
+FROM `bonza-interview.analyst.telecom_data` where month=201410 and date=11)
+select partsoftheday,count(user_id) as count from part group by partsoftheday order by partsoftheday
